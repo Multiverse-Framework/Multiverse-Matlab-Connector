@@ -22,6 +22,47 @@ class MultiverseConnector(MultiverseClient):
     def send_and_receive_data(self) -> None:
         self._communicate(False)
 
+import argparse
+import time
+import numpy
+import yaml
+
+class MultiverseInitializer(MultiverseConnector):
+    def __init__(self, data_path: str):
+        multiverse_meta_data = MultiverseMetaData(
+            world_name="world",
+            simulation_name="multiverse_initializer",
+            length_unit="m",
+            angle_unit="rad",
+            mass_unit="kg",
+            time_unit="s",
+            handedness="rhs",
+        )
+        super().__init__(port="5252", multiverse_meta_data=multiverse_meta_data)
+        self.run()
+
+        data = yaml.load(open(args.data_path, 'r'), Loader=yaml.FullLoader)
+        object_names = list(data.keys())
+
+        self.request_meta_data["send"] = {}
+        self.request_meta_data["receive"] = {}
+        
+        for object_name in object_names:
+            self.request_meta_data["send"][object_name] = []
+            for attribute_name, attribute_data in data[object_name].items():
+                self.request_meta_data["send"][object_name].append(attribute_name)
+        self.send_and_receive_meta_data()
+        
+        response_meta_data = self.response_meta_data
+        send_data = []
+        for object_name, attributes in response_meta_data["send"].items():
+            for attribute_name in attributes.keys():
+                send_data += data[object_name][attribute_name]
+
+        self.send_data = [0.0] + send_data
+        self.send_and_receive_data()
+        self.stop()
+
 class Joint1Connector(MultiverseConnector):
     cmd_torque: float = 0.0
     position: float = 0.0
@@ -76,11 +117,16 @@ class Joint1Connector(MultiverseConnector):
         self.KV = self.receive_data[2]
         self.KI = self.receive_data[3]
 
-import time
-import numpy
-import matplotlib.pyplot as plt
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=f"Dummy data for joint 1 simulation.")
+
+    # Define arguments
+    parser.add_argument("--data_path", type=str, required=False, default="init.yaml", help="Path to load the data")
+
+    # Parse arguments
+    args = parser.parse_args()
+    MultiverseInitializer(args.data_path)
+
     joint_1_connector = Joint1Connector()
 
     while joint_1_connector.world_time >= 0.0:
@@ -100,4 +146,3 @@ if __name__ == "__main__":
         time.sleep(0.1)
 
     joint_1_connector.stop()
-

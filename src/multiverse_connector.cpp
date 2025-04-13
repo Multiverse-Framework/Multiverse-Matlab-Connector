@@ -316,21 +316,8 @@ private:
     double sim_start_time;
 };
 
-static std::string host_str = "";
-static std::string server_port_str = "";
-static std::string client_port_str = "";
-static std::string world_name_str = "";
-static std::string simulation_name_str = "";
-static Json::Value param_json = Json::Value();
-
-static MultiverseConnector *mc = nullptr;
-
 static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output ports and their size */
 {
-    if (mc != nullptr)
-    {
-        mexPrintf("MultiverseConnector already initialized, this should not happen.\n");
-    }
     ssSetNumSFcnParams(S, 6);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S))
     {
@@ -338,13 +325,75 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         return;
     }
 
+    const mxArray *param = ssGetSFcnParam(S, 5);
+    if (!mxIsChar(param))
+    {
+        ssSetErrorStatus(S, "Parameter must be a string.");
+        return;
+    }
+    const std::string param_str = mxArrayToString(param);
+    if (param_str.empty())
+    {
+        ssSetErrorStatus(S, "Parameter string cannot be empty.");
+        return;
+    }
+    const Json::Value param_json = string_to_json(param_str);
+
+    int input_port_size = 0;
+    if (param_json.isMember("send"))
+    {
+        for (const std::string &object_name : param_json["send"].getMemberNames())
+        {
+            input_port_size += param_json["send"][object_name].size();
+        }
+    }
+    else
+    {
+        mexPrintf("send not found, using a default size for input port\n");
+        input_port_size = 1;
+    }
+    mexPrintf("Input port size: %d\n", input_port_size);
+
+    int output_port_size = 0;
+    if (param_json.isMember("receive"))
+    {
+        for (const std::string &object_name : param_json["receive"].getMemberNames())
+        {
+            output_port_size += param_json["receive"][object_name].size();
+        }
+    }
+    else
+    {
+        mexPrintf("receive not found, using a default size for input port\n");
+        output_port_size = 1;
+    }
+
+    if (!ssSetNumInputPorts(S, 1))
+        return;
+    ssSetInputPortWidth(S, 0, input_port_size);
+    ssSetInputPortDirectFeedThrough(S, 0, 1);
+
+    if (!ssSetNumOutputPorts(S, 1))
+        return;
+    ssSetOutputPortWidth(S, 0, output_port_size);
+
+    ssSetNumSampleTimes(S, 1);
+
+    /* Take care when specifying exception free code - see sfuntmpl.doc */
+    ssSetOptions(S, SS_OPTION_EXCEPTION_FREE_CODE);
+
+    ssSetNumPWork(S, 1);
+}
+#define MDL_START
+static void mdlStart(SimStruct *S)
+{
     const mxArray *host = ssGetSFcnParam(S, 0);
     if (!mxIsChar(host))
     {
         ssSetErrorStatus(S, "Host must be a string.");
         return;
     }
-    host_str = mxArrayToString(host);
+    const std::string host_str = mxArrayToString(host);
     if (host_str.empty())
     {
         ssSetErrorStatus(S, "Host string cannot be empty.");
@@ -357,7 +406,7 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         ssSetErrorStatus(S, "Server port must be a string.");
         return;
     }
-    server_port_str = mxArrayToString(server_port);
+    const std::string server_port_str = mxArrayToString(server_port);
     if (server_port_str.empty())
     {
         ssSetErrorStatus(S, "Server port string cannot be empty.");
@@ -370,7 +419,7 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         ssSetErrorStatus(S, "Client port must be a string.");
         return;
     }
-    client_port_str = mxArrayToString(client_port);
+    const std::string client_port_str = mxArrayToString(client_port);
     if (client_port_str.empty())
     {
         ssSetErrorStatus(S, "Client port string cannot be empty.");
@@ -383,7 +432,7 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         ssSetErrorStatus(S, "World name must be a string.");
         return;
     }
-    world_name_str = mxArrayToString(world_name);
+    const std::string world_name_str = mxArrayToString(world_name);
     if (world_name_str.empty())
     {
         ssSetErrorStatus(S, "World name string cannot be empty.");
@@ -396,7 +445,7 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         ssSetErrorStatus(S, "Simulation name must be a string.");
         return;
     }
-    simulation_name_str = mxArrayToString(simulation_name);
+    const std::string simulation_name_str = mxArrayToString(simulation_name);
     if (simulation_name_str.empty())
     {
         ssSetErrorStatus(S, "Simulation name string cannot be empty.");
@@ -409,16 +458,15 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         ssSetErrorStatus(S, "Parameter must be a string.");
         return;
     }
-
     const std::string param_str = mxArrayToString(param);
     if (param_str.empty())
     {
         ssSetErrorStatus(S, "Parameter string cannot be empty.");
         return;
     }
-    param_json = string_to_json(param_str);
+    const Json::Value param_json = string_to_json(param_str);
 
-    mc = new MultiverseConnector(
+    MultiverseConnector *mc = new MultiverseConnector(
         host_str,
         server_port_str,
         client_port_str,
@@ -427,19 +475,8 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         param_json);
     mc->start();
 
-    if (!ssSetNumInputPorts(S, 1))
-        return;
-    ssSetInputPortWidth(S, 0, mc->get_send_data_size());
-    ssSetInputPortDirectFeedThrough(S, 0, 1);
-
-    if (!ssSetNumOutputPorts(S, 1))
-        return;
-    ssSetOutputPortWidth(S, 0, mc->get_receive_data_size());
-
-    ssSetNumSampleTimes(S, 1);
-
-    /* Take care when specifying exception free code - see sfuntmpl.doc */
-    ssSetOptions(S, SS_OPTION_EXCEPTION_FREE_CODE);
+    // Save in work state
+    ssSetPWorkValue(S, 0, mc);
 }
 static void mdlInitializeSampleTimes(SimStruct *S) /* Set the sample time of the S-function as inherited */
 {
@@ -448,6 +485,12 @@ static void mdlInitializeSampleTimes(SimStruct *S) /* Set the sample time of the
 }
 static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output for each time step */
 {
+    MultiverseConnector *mc = static_cast<MultiverseConnector *>(ssGetPWorkValue(S, 0));
+    if (mc == nullptr)
+    {
+        ssSetErrorStatus(S, "MultiverseConnector is null !!!");
+        return;
+    }
     int_T i;
     InputRealPtrsType input_ptrs = ssGetInputPortRealSignalPtrs(S, 0);
     for (i = 0; i < mc->get_send_data_size(); i++)
@@ -464,6 +507,7 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
     }
 }
 static void mdlTerminate(SimStruct *S) {
+    MultiverseConnector *mc = static_cast<MultiverseConnector *>(ssGetPWorkValue(S, 0));
     if (mc != nullptr)
     {
         mexPrintf("Terminating MultiverseConnector...\n");
