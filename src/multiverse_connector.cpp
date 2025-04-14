@@ -1,13 +1,14 @@
 #define S_FUNCTION_NAME multiverse_connector /* Specifies the name of the S-function (timestwo) */
 #define S_FUNCTION_LEVEL 2                   /* Specifies that the S-function is in the Level 2 format */
 
-#include "simstruc.h"                        /* Defines the data structure */
+#include "simstruc.h" /* Defines the data structure */
 
 #include <string>
 #include <multiverse_client_json.h>
 #include <map>
 #include <set>
 #include <vector>
+#include <thread>
 
 static std::map<std::string, size_t> attribute_map_double = {
     {"", 0},
@@ -77,7 +78,7 @@ public:
         host = in_host;
         server_port = in_server_port;
         client_port = in_client_port;
-        
+
         if (param_json.isMember("send"))
         {
             for (const std::string &object_name : param_json["send"].getMemberNames())
@@ -114,6 +115,33 @@ public:
         reset();
 
         communicate(true);
+        communicate_thread = new std::thread([this]()
+                                             { 
+                                              while (!should_stop)
+                                              {
+                                                communicate(false);
+                                              } });
+    }
+
+    void stop()
+    {
+        if (communicate_thread != nullptr)
+        {
+            should_stop = true;
+            communicate_thread->join();
+            delete communicate_thread;
+            communicate_thread = nullptr;
+        }
+    }
+
+    void set_sim_time(const double time)
+    {
+        sim_time = time;
+    }
+
+    double get_world_time() const
+    {
+        return *world_time;
     }
 
     size_t get_send_data_size() const
@@ -284,7 +312,7 @@ private:
 
     void bind_send_data() override
     {
-        *world_time = get_time_now() - sim_start_time;
+        *world_time = sim_time;
     }
 
     void bind_receive_data() override
@@ -299,7 +327,7 @@ private:
 
     void reset() override
     {
-        sim_start_time = get_time_now();
+        sim_time = 0.0;
     }
 
 private:
@@ -313,7 +341,11 @@ private:
 
     std::map<std::string, std::map<std::string, std::vector<double *>>> receive_objects_data;
 
-    double sim_start_time;
+    std::thread *communicate_thread = nullptr;
+
+    bool should_stop = false;
+
+    double sim_time;
 };
 
 static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output ports and their size */
@@ -339,34 +371,51 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
     }
     const Json::Value param_json = string_to_json(param_str);
 
-    int input_port_size = 0;
+    int input_port_size = 1;
     if (param_json.isMember("send"))
     {
         for (const std::string &object_name : param_json["send"].getMemberNames())
         {
-            input_port_size += param_json["send"][object_name].size();
+            for (const Json::Value &attribute_name : param_json["send"][object_name])
+            {
+                if (attribute_map_double.find(attribute_name.asString()) == attribute_map_double.end())
+                {
+                    const std::string error_message = "Attribute: " + attribute_name.asString() + " not found in attribute_map_double.";
+                    ssSetErrorStatus(S, error_message.c_str());
+                    return;
+                }
+                input_port_size += attribute_map_double[attribute_name.asString()];
+            }
         }
     }
     else
     {
-        mexPrintf("send not found, using a default size for input port\n");
-        input_port_size = 1;
+        mexPrintf("send not found\n");
     }
     mexPrintf("Input port size: %d\n", input_port_size);
 
-    int output_port_size = 0;
+    int output_port_size = 1;
     if (param_json.isMember("receive"))
     {
         for (const std::string &object_name : param_json["receive"].getMemberNames())
         {
-            output_port_size += param_json["receive"][object_name].size();
+            for (const Json::Value &attribute_name : param_json["receive"][object_name])
+            {
+                if (attribute_map_double.find(attribute_name.asString()) == attribute_map_double.end())
+                {
+                    const std::string error_message = "Attribute: " + attribute_name.asString() + " not found in attribute_map_double.";
+                    ssSetErrorStatus(S, error_message.c_str());
+                    return;
+                }
+                output_port_size += attribute_map_double[attribute_name.asString()];
+            }
         }
     }
     else
     {
-        mexPrintf("receive not found, using a default size for input port\n");
-        output_port_size = 1;
+        mexPrintf("receive not found\n");
     }
+    mexPrintf("Output port size: %d\n", output_port_size);
 
     if (!ssSetNumInputPorts(S, 1))
         return;
@@ -493,24 +542,26 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
     }
     int_T i;
     InputRealPtrsType input_ptrs = ssGetInputPortRealSignalPtrs(S, 0);
+    mc->set_sim_time(*input_ptrs[0]);
     for (i = 0; i < mc->get_send_data_size(); i++)
     {
-        mc->set_send_data_at(i, *input_ptrs[i]);
+        mc->set_send_data_at(i, *input_ptrs[i + 1]);
     }
-
-    mc->communicate();
 
     real_T *output_ptrs = ssGetOutputPortRealSignal(S, 0);
+    output_ptrs[0] = mc->get_world_time();
     for (i = 0; i < mc->get_receive_data_size(); i++)
     {
-        output_ptrs[i] = mc->get_receive_data_at(i);
+        output_ptrs[i + 1] = mc->get_receive_data_at(i);
     }
 }
-static void mdlTerminate(SimStruct *S) {
+static void mdlTerminate(SimStruct *S)
+{
     MultiverseConnector *mc = static_cast<MultiverseConnector *>(ssGetPWorkValue(S, 0));
     if (mc != nullptr)
     {
         mexPrintf("Terminating MultiverseConnector...\n");
+        mc->stop();
         delete mc;
         mc = nullptr;
         mexPrintf("MultiverseConnector terminated.\n");

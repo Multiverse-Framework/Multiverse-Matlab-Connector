@@ -64,6 +64,8 @@ class MultiverseInitializer(MultiverseConnector):
         self.stop()
 
 class Joint1Connector(MultiverseConnector):
+    cmd_position: float = 0.0
+    cmd_velocity: float = 0.0
     cmd_torque: float = 0.0
     position: float = 0.0
     velocity: float = 0.0
@@ -73,6 +75,7 @@ class Joint1Connector(MultiverseConnector):
     KI: float = 0.0
     sim_time: float = 0.0
     world_time: float = 0.0
+    motor_time: float = 0.0
 
     def __init__(self) -> None:
         multiverse_meta_data = MultiverseMetaData(
@@ -86,13 +89,31 @@ class Joint1Connector(MultiverseConnector):
         )
         super().__init__(port="7575", multiverse_meta_data=multiverse_meta_data)
 
+        def reset_callback() -> None:
+            self.cmd_position = 0.0
+            self.cmd_velocity = 0.0
+            self.cmd_torque = 0.0
+            self.position = 0.0
+            self.velocity = 0.0
+            self.torque = 0.0
+            self.KD = 0.0
+            self.KV = 0.0
+            self.KI = 0.0
+            self.start_time = time.time()
+            self.sim_time = 0.0
+            self.motor_time = 0.0
+        self.reset_callback = reset_callback
+
         self.run()
         self.request_meta_data["send"] = {}
         self.request_meta_data["send"]["joint_1"] = [
+            "cmd_joint_rvalue",
+            "cmd_joint_angular_velocity",
             "cmd_joint_torque",
             "joint_rvalue",
             "joint_angular_velocity",
             "joint_torque",
+            "time",
         ]
         self.request_meta_data["receive"] = {}
         self.request_meta_data["receive"]["KD"] = ["scalar"]
@@ -106,10 +127,13 @@ class Joint1Connector(MultiverseConnector):
         self.sim_time = time.time() - self.start_time
         self.send_data = [
             self.sim_time,
+            self.cmd_velocity,
+            self.cmd_position,
             self.cmd_torque,
             self.velocity,
             self.position,
             self.torque,
+            self.motor_time,
         ]
         self.send_and_receive_data()
         self.world_time = self.receive_data[0]
@@ -117,11 +141,17 @@ class Joint1Connector(MultiverseConnector):
         self.KV = self.receive_data[2]
         self.KI = self.receive_data[3]
 
+import os
+import threading
+
 if __name__ == "__main__":
+    default_data_dir = os.path.dirname(os.path.abspath(__file__))
+    default_data_path = os.path.join(default_data_dir, "init.yaml")
+
     parser = argparse.ArgumentParser(description=f"Dummy data for joint 1 simulation.")
 
     # Define arguments
-    parser.add_argument("--data_path", type=str, required=False, default="init.yaml", help="Path to load the data")
+    parser.add_argument("--data_path", type=str, required=False, default=default_data_path, help="Path to load the initial data")
 
     # Parse arguments
     args = parser.parse_args()
@@ -129,20 +159,41 @@ if __name__ == "__main__":
 
     joint_1_connector = Joint1Connector()
 
-    while joint_1_connector.world_time >= 0.0:
-        joint_1_connector.cmd_torque = 0.5 * numpy.sin(joint_1_connector.sim_time)
-        joint_1_connector.position = 0.5 * numpy.sin(joint_1_connector.sim_time)
-        joint_1_connector.velocity = 0.5 * numpy.cos(joint_1_connector.sim_time)
-        joint_1_connector.torque = 0.5 * numpy.sin(joint_1_connector.sim_time)
+    stop_event = threading.Event()
+    def run_joint1_thread():
+        while not stop_event.is_set():
+            time_now = time.time()
+            joint_1_connector.communicate()
+            time_diff = time.time() - time_now
+            if time_diff < 0.0001:
+                time.sleep(0.0001 - time_diff)
+    joint_1_thread = threading.Thread(target=run_joint1_thread)
+    joint_1_thread.start()
 
-        joint_1_connector.communicate()
+    try:
+        last_time = time.time()
+        while joint_1_connector.world_time >= 0.0:
+            joint_1_connector.motor_time = time.time() - joint_1_connector.start_time
+            joint_1_connector.cmd_position = 0.1 * numpy.sin(joint_1_connector.sim_time)
+            joint_1_connector.cmd_velocity = 0.2 * numpy.sin(joint_1_connector.sim_time)
+            joint_1_connector.cmd_torque = 0.3 * numpy.sin(joint_1_connector.sim_time)
+            joint_1_connector.position = 0.4 * numpy.sin(joint_1_connector.sim_time)
+            joint_1_connector.velocity = 0.5 * numpy.sin(joint_1_connector.sim_time)
+            joint_1_connector.torque = 0.6 * numpy.sin(joint_1_connector.sim_time)
 
-        KD = joint_1_connector.KD
-        KV = joint_1_connector.KV
-        KI = joint_1_connector.KI
+            KD = joint_1_connector.KD
+            KV = joint_1_connector.KV
+            KI = joint_1_connector.KI
 
-        print(f"KD: {KD}, KV: {KV}, KI: {KI}")
-        
-        time.sleep(0.1)
+            if time.time() - last_time > 0.1:
+                print(f"KD: {KD:.2f}, KV: {KV:.2f}, KI: {KI:.2f}")
+                last_time = time.time()
+            time.sleep(0.001)
 
-    joint_1_connector.stop()
+    except KeyboardInterrupt:
+        print("Interrupted by user.")
+    finally:
+        joint_1_connector.stop()
+        stop_event.set()
+        joint_1_thread.join()
+        print("Joint 1 simulation stopped.")

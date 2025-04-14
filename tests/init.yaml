@@ -5,7 +5,10 @@ KV:
 KI:
   scalar: [0.0]
 joint_1:
+  cmd_joint_rvalue: [0.0]
+  cmd_joint_angular_velocity: [0.0]
   cmd_joint_torque: [0.0]
   joint_rvalue: [0.0]
   joint_angular_velocity: [0.0]
   joint_torque: [0.0]
+  time: [0.0]
