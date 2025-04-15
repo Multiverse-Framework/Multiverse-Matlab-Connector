@@ -28,7 +28,7 @@ import numpy
 import yaml
 
 class MultiverseInitializer(MultiverseConnector):
-    def __init__(self, data_path: str):
+    def __init__(self):
         multiverse_meta_data = MultiverseMetaData(
             world_name="world",
             simulation_name="multiverse_initializer",
