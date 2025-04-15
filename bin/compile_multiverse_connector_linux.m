@@ -3,7 +3,7 @@ clc
 REPO_DIR            = './..';
 SRC_DIR             = fullfile(REPO_DIR, 'src');
 SRC_PATH            = fullfile(SRC_DIR, 'multiverse_connector.cpp');
-LIB_DIR             = fullfile(REPO_DIR, 'lib', 'windows');
+LIB_DIR             = fullfile(REPO_DIR, 'lib', 'linux');
 INCLUDE_DIR         = fullfile(REPO_DIR, 'include');
 
 mex(['-I' INCLUDE_DIR], ...
