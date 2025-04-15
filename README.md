@@ -108,7 +108,7 @@ Here, you’ll see:
 
 > The first input/output is always time (`clock` and `world_time`, respectively).
 
-Another S-Function example breakdown:
+Another S-Function example `'{"send": {"object_1": ["position", "quaternion", "force", "torque"]}}'` breakdown:
 - `14` inputs:
   - 1 for clock (s)
   - 3 for force (N)
@@ -154,9 +154,12 @@ To test the integration, you must execute the following steps in the correct ord
 git clone https://github.com/Multiverse-Framework/Multiverse-ServerClient.git
 ```
 
-1. (Optional) Build the Multiverse Server via `make` 
+1. (Optional) Build the Multiverse Server via `make`
 
-2. Start the Multiverse Server:
+- **Windows:** `cd .\multiverse_server && make.exe clean && make.exe`
+- **Ubuntu:** `cd ./multiverse_server && make clean && make`
+
+3. Start the Multiverse Server:
 
 - **Windows:** `.\bin\multiverse_server.exe`
 - **Ubuntu:** `./bin/multiverse_server`
@@ -217,10 +220,10 @@ This launches a dummy client that:
 2. **Avoid running Simulink with an S-Function that specifies objects in the `receive` if those objects are not yet available on the Multiverse Server.**
    Doing so will cause the client to hang while waiting for the missing data.
 
-3. **Use unique <simulation_name> and <client_port> for each client.**  
+4. **Use unique <simulation_name> and <client_port> for each client.**  
    Conflicts cause undefined behavior on the Multiverse Server.
 
-4. **Always feed a valid clock signal to the S-Function.**  
+5. **Always feed a valid clock signal to the S-Function.**  
    Supplying `0` or nothing will repeatedly reset other clients.
 
 ---
