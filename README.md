@@ -76,7 +76,7 @@ cd ./bin
 ```
 
 - Object names (`object_1`, `object_2`, etc.) can be arbitrary.
-- Attribute names must match those listed in `attribute_map_double` inside [`multiverse_connector.cpp`](./src/multiverse_connector.cpp).
+- Attribute names must match those listed in [`attribute_map_double`](https://github.com/Multiverse-Framework/Multiverse-Matlab-Connector/blob/main/src/multiverse_connector.cpp#L13-L38) inside [multiverse_connector.cpp](./src/multiverse_connector.cpp).
 
 #### Example:
 
@@ -130,7 +130,7 @@ Once configured, your Simulink block can send/receive real-time data with the Mu
 
 ## 🛠️ Building the S-Function
 
-If you make changes to [`multiverse_connector.cpp`](./src/multiverse_connector.cpp#L13-L38), rebuild it using the appropriate script:
+If you make changes to [multiverse_connector.cpp](./src/multiverse_connector.cpp), rebuild it using the appropriate script:
 
 - **Windows:**  
   Run `.\bin\compile_multiverse_connector_windows.m`
