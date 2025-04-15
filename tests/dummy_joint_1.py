@@ -28,7 +28,7 @@ import numpy
 import yaml
 
 class MultiverseInitializer(MultiverseConnector):
-    def __init__(self):
+    def __init__(self, data_path: str):
         multiverse_meta_data = MultiverseMetaData(
             world_name="world",
             simulation_name="multiverse_initializer",
@@ -41,7 +41,7 @@ class MultiverseInitializer(MultiverseConnector):
         super().__init__(port="5252", multiverse_meta_data=multiverse_meta_data)
         self.run()
 
-        data = yaml.load(open(args.data_path, 'r'), Loader=yaml.FullLoader)
+        data = yaml.load(open(data_path, 'r'), Loader=yaml.FullLoader)
         object_names = list(data.keys())
 
         self.request_meta_data["send"] = {}
