@@ -82,7 +82,7 @@ cd ./bin
 
 1. Test S-Function
 
-The Test S-Function is the one demonstrated in the provided test project [./test/dummy_joint_1.slx](./test/dummy_joint_1.slx):
+The Test S-Function is the one demonstrated in the provided test project [./tests/dummy_joint_1.slx](./tests/dummy_joint_1.slx):
 
 ![dummy_joint_1](./tests/dummy_joint_1.png)
 
@@ -197,7 +197,7 @@ This launches a dummy client that:
 ### Step 3: Open the Simulink Test Project
 
 1. Open MATLAB Simulink
-2. Open the test model [./test/dummy_joint_1.slx](./test/dummy_joint_1.slx)
+2. Open the test model [./tests/dummy_joint_1.slx](./tests/dummy_joint_1.slx)
 3. If the Multiverse Server is remote, open the `Subsystem` and update the S-Function's first parameter:  
    ```matlab
    'tcp://<host_ip>'
