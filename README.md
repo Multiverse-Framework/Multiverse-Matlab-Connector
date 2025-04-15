@@ -108,7 +108,7 @@ Here, you’ll see:
 
 > The first input/output is always time (`clock` and `world_time`, respectively).
 
-Example breakdown:
+Another S-Function example breakdown:
 - `14` inputs:
   - 1 for clock (s)
   - 3 for force (N)
@@ -124,7 +124,7 @@ Example breakdown:
 
 ### 6. You're Ready!
 
-Once configured, your Simulink block can send/receive real-time data with the Multiverse Server. You can now connect it to other simulation blocks.
+Once configured, your Simulink block can send/receive real-time data with the Multiverse Server. You can now connect it to other blocks.
 
 ---
 
@@ -154,18 +154,14 @@ To test the integration, you must execute the following steps in the correct ord
 git clone https://github.com/Multiverse-Framework/Multiverse-ServerClient.git
 ```
 
-1. (Optional) Build the server via `make` 
+1. (Optional) Build the Multiverse Server via `make` 
 
-2. Start the server:
+2. Start the Multiverse Server:
 
 - **Windows:** `.\bin\multiverse_server.exe`
 - **Ubuntu:** `./bin/multiverse_server`
 
-3. Get your server’s IP address — this will be used as the `<host>` by clients.
-
----
-
-Sure! Here's the **updated section** from the testing instructions where we modify the Python command to explicitly pass the host using a command-line argument:
+3. Get your server’s IP address — this will be used as the `<host_ip>` by clients.
 
 ---
 
@@ -173,7 +169,7 @@ Sure! Here's the **updated section** from the testing instructions where we modi
 
 1. Clone the same repository if you haven’t already:
 ```bash
-git clone https://github.com/Multiverse-Framework/Multiverse-ServerClient.git
+git clone https://github.com/Multiverse-Framework/Multiverse-ClientPy.git
 ```
 
 2. Set the `PYTHONPATH` to include `Multiverse-ClientPy`, then run the test script with a specific host:
@@ -190,7 +186,7 @@ export PYTHONPATH=$PYTHONPATH:<path_to>/Multiverse-ClientPy
 python ./tests/dummy_joint_1.py --host=tcp://<host_ip>
 ```
 
-> Replace `<host_ip>` with the IP address of the machine running the `multiverse_server` (default is `127.0.0.1`).
+> Replace `<host_ip>` with the IP address of the machine running the Multiverse Server (default is `127.0.0.1`).
 
 This launches a dummy client that:
 - Sends joint commands and states data to the Multiverse Server
@@ -218,11 +214,11 @@ This launches a dummy client that:
 1. **Start the Multiverse Server first!**  
    Clients block until the Multiverse Server is available.
 
-2. **Avoid running Simulink with an S-Function that specifies objects in the `receive` if those objects are not yet available on the server.**
+2. **Avoid running Simulink with an S-Function that specifies objects in the `receive` if those objects are not yet available on the Multiverse Server.**
    Doing so will cause the client to hang while waiting for the missing data.
 
-3. **Use unique `simulation_name` and `client_port` for each client.**  
-   Conflicts cause undefined behavior on the server.
+3. **Use unique <simulation_name> and <client_port> for each client.**  
+   Conflicts cause undefined behavior on the Multiverse Server.
 
 4. **Always feed a valid clock signal to the S-Function.**  
    Supplying `0` or nothing will repeatedly reset other clients.
