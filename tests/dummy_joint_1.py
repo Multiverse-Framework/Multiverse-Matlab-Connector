@@ -151,10 +151,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"Dummy data for joint 1 simulation.")
 
     # Define arguments
+    parser.add_argument("--host", type=str, required=False, default="tcp://127.0.0.1", help="Host IP address")
     parser.add_argument("--data_path", type=str, required=False, default=default_data_path, help="Path to load the initial data")
 
     # Parse arguments
     args = parser.parse_args()
+
+    MultiverseClient._host = args.host
     MultiverseInitializer(args.data_path)
 
     joint_1_connector = Joint1Connector()
