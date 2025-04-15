@@ -79,9 +79,22 @@ cd ./bin
 - Attribute names must match those listed in `attribute_map_double` inside [`multiverse_connector.cpp`](./src/multiverse_connector.cpp).
 
 #### Example:
+
+1. Test S-Function
+
+The Test S-Function is the one demonstrated in the provided test project [./test/dummy_joint_1.slx](./test/dummy_joint_1.slx):
+
+![dummy_joint_1](./tests/dummy_joint_1.png)
+
+2. Another S-Function
+
+Here is a sample configuration string for an additional S-Function instance:
+
 ```matlab
 'tcp://127.0.0.1' '7000' '4527' 'world' 'matlab' '{"send": {"object_1": ["position", "quaternion", "force", "torque"]}}'
 ```
+
+This example connects to the local multiverse_server and sends state data for a single object.
 
 ---
 
@@ -120,10 +133,10 @@ Once configured, your Simulink block can send/receive real-time data with the Mu
 If you make changes to [`multiverse_connector.cpp`](./src/multiverse_connector.cpp), rebuild it using the appropriate script:
 
 - **Windows:**  
-  Run `compile_multiverse_connector_windows.m`
+  Run `.\bin\compile_multiverse_connector_windows.m`
 
 - **Linux/Ubuntu:**  
-  Run `compile_multiverse_connector_linux.m`
+  Run `./bin/compile_multiverse_connector_linux.m`
 
 > ⚠️ On Windows, you must install the **MinGW-w64 Compiler** add-on from MATLAB Add-On Explorer.
 
@@ -189,7 +202,7 @@ This launches a dummy client that:
 
 1. Open MATLAB Simulink
 2. Open the test model [./test/dummy_joint_1.slx](./test/dummy_joint_1.slx)
-3. If the Multiverse Server is remote, update the S-Function's first parameter:  
+3. If the Multiverse Server is remote, open the `Subsystem` and update the S-Function's first parameter:  
    ```matlab
    'tcp://<host_ip>'
    ```
