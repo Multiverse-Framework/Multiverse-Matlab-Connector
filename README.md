@@ -167,7 +167,7 @@ git clone https://github.com/Multiverse-Framework/Multiverse-ServerClient.git
 
 ### Step 2: Launch a Dummy Python Client
 
-1. Clone the same repository if you haven’t already:
+1. Clone the [Multiverse-ClientPy](https://github.com/Multiverse-Framework/Multiverse-ClientPy.git) repo if you haven’t already:
 ```bash
 git clone https://github.com/Multiverse-Framework/Multiverse-ClientPy.git
 ```
