@@ -130,7 +130,7 @@ Once configured, your Simulink block can send/receive real-time data with the Mu
 
 ## 🛠️ Building the S-Function
 
-If you make changes to [`multiverse_connector.cpp`](./src/multiverse_connector.cpp), rebuild it using the appropriate script:
+If you make changes to [`multiverse_connector.cpp`](./src/multiverse_connector.cpp#L13-L38), rebuild it using the appropriate script:
 
 - **Windows:**  
   Run `.\bin\compile_multiverse_connector_windows.m`
@@ -169,7 +169,7 @@ Sure! Here's the **updated section** from the testing instructions where we modi
 
 ---
 
-### Step 2 — Launch a Dummy Python Client
+### Step 2: Launch a Dummy Python Client
 
 1. Clone the same repository if you haven’t already:
 ```bash
