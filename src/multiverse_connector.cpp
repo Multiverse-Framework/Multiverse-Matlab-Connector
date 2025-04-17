@@ -65,7 +65,8 @@ public:
         const std::string &in_client_port = "7593",
         const std::string &world_name = "world",
         const std::string &simulation_name = "matlab_connector",
-        const Json::Value &param_json = Json::Value())
+        const Json::Value &param_json = Json::Value(),
+        const double in_step_time = 0.001)
     {
         meta_data["world_name"] = world_name;
         meta_data["simulation_name"] = simulation_name;
@@ -74,6 +75,7 @@ public:
         meta_data["mass_unit"] = "kg";
         meta_data["time_unit"] = "s";
         meta_data["handedness"] = "rhs";
+        step_time = in_step_time;
 
         host = in_host;
         server_port = in_server_port;
@@ -101,6 +103,14 @@ public:
                 }
             }
         }
+        if (param_json.isMember("api_callbacks"))
+        {
+            api_callbacks = param_json["api_callbacks"];
+        }
+        else
+        {
+            api_callbacks = Json::Value();
+        }
     }
 
     ~MultiverseConnector()
@@ -115,11 +125,26 @@ public:
         reset();
 
         communicate(true);
+        mexPrintf("Send RequestMetaData: %s\n", request_meta_data_str.c_str());
+        mexPrintf("Receive ResponseMetaData: %s\n", response_meta_data_str.c_str());
+        communicate(false);
         communicate_thread = new std::thread([this]()
                                              { 
                                               while (!should_stop)
                                               {
+                                                const double time_now = get_time_now();
+                                                if (!api_callbacks.empty())
+                                                {
+                                                    request_meta_data_json["api_callbacks"] = api_callbacks;
+                                                    request_meta_data_str = request_meta_data_json.toStyledString();
+                                                    communicate(true);
+                                                }
                                                 communicate(false);
+                                                const double time_diff = get_time_now() - time_now;
+                                                if (time_diff < step_time)
+                                                {
+                                                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((step_time - time_diff) * 1000)));
+                                                }
                                               } });
     }
 
@@ -166,6 +191,17 @@ public:
         }
     }
 
+    void set_api_callbacks(const Json::Value &in_api_callbacks)
+    {
+        // mexPrintf("Set API callbacks: %s\n", in_api_callbacks.toStyledString().c_str());
+        api_callbacks = in_api_callbacks;
+    }
+
+    Json::Value get_api_callbacks_response() const
+    {
+        return api_callbacks_response;
+    }
+
     double get_receive_data_at(size_t index) const
     {
         if (index < receive_buffer.buffer_double.size)
@@ -210,13 +246,17 @@ private:
 
     bool init_objects(bool) override
     {
-        return send_objects.size() > 0 || receive_objects.size() > 0;
+        return true;
     }
 
     void bind_request_meta_data() override
     {
         // Create JSON object and populate it
-        request_meta_data_json.clear();
+        if (!request_meta_data_json.isMember("api_callbacks"))
+        {
+            request_meta_data_json.clear();
+        }
+
         request_meta_data_json["meta_data"]["world_name"] = meta_data["world_name"];
         request_meta_data_json["meta_data"]["simulation_name"] = meta_data["simulation_name"];
         request_meta_data_json["meta_data"]["length_unit"] = meta_data["length_unit"];
@@ -242,14 +282,10 @@ private:
         }
 
         request_meta_data_str = request_meta_data_json.toStyledString();
-
-        mexPrintf("Send RequestMetaData: %s\n", request_meta_data_str.c_str());
     }
 
     void bind_response_meta_data() override
     {
-        mexPrintf("Receive ResponseMetaData: %s\n", response_meta_data_str.c_str());
-
         send_objects.clear();
         for (const std::string &object_name : response_meta_data_json["send"].getMemberNames())
         {
@@ -268,6 +304,15 @@ private:
             {
                 receive_objects[object_name].insert(attribute_name);
             }
+        }
+
+        if (response_meta_data_json.isMember("api_callbacks_response"))
+        {
+            api_callbacks_response = response_meta_data_json["api_callbacks_response"];
+        }
+        else
+        {
+            api_callbacks_response = Json::Value();
         }
     }
 
@@ -341,19 +386,25 @@ private:
 
     std::map<std::string, std::map<std::string, std::vector<double *>>> receive_objects_data;
 
+    Json::Value api_callbacks;
+
+    Json::Value api_callbacks_response;
+
     std::thread *communicate_thread = nullptr;
 
     bool should_stop = false;
 
     double sim_time;
+
+    double step_time = 0.001;
 };
 
 static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output ports and their size */
 {
-    ssSetNumSFcnParams(S, 6);
+    ssSetNumSFcnParams(S, 7);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S))
     {
-        ssSetErrorStatus(S, "Incorrect number of parameters passed to S-function, expected 6.");
+        ssSetErrorStatus(S, "Incorrect number of parameters passed to S-function, expected 7.");
         return;
     }
 
@@ -421,6 +472,7 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
         return;
     ssSetInputPortWidth(S, 0, input_port_size);
     ssSetInputPortDirectFeedThrough(S, 0, 1);
+    ssSetInputPortDataType(S, 0, SS_DOUBLE);
 
     if (!ssSetNumOutputPorts(S, 1))
         return;
@@ -515,13 +567,28 @@ static void mdlStart(SimStruct *S)
     }
     const Json::Value param_json = string_to_json(param_str);
 
+    const mxArray *step_time = ssGetSFcnParam(S, 6);
+    if (!mxIsDouble(step_time) || mxGetNumberOfElements(step_time) != 1)
+    {
+        ssSetErrorStatus(S, "Step time must be a double.");
+        return;
+    }
+    if (mxGetPr(step_time)[0] <= 0)
+    {
+        ssSetErrorStatus(S, "Step time must be positive.");
+        return;
+    }
+    const double step_time_value = mxGetPr(step_time)[0];
+
     MultiverseConnector *mc = new MultiverseConnector(
         host_str,
         server_port_str,
         client_port_str,
         world_name_str,
         simulation_name_str,
-        param_json);
+        param_json,
+        step_time_value);
+
     mc->start();
 
     // Save in work state
@@ -553,6 +620,22 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
     for (i = 0; i < mc->get_receive_data_size(); i++)
     {
         output_ptrs[i + 1] = mc->get_receive_data_at(i);
+    }
+
+    const Json::Value api_callbacks_response = mc->get_api_callbacks_response();
+    if (!api_callbacks_response.empty())
+    {
+        for (const std::string &simulation_name : api_callbacks_response.getMemberNames())
+        {
+            for (const Json::Value simulation_api_callback_response : api_callbacks_response[simulation_name])
+            {
+                for (const std::string &function_name : simulation_api_callback_response.getMemberNames())
+                {
+                    const Json::Value function_response = simulation_api_callback_response[function_name];
+                    mexPrintf("Simulation: %s, Function: %s, Response: %s\n", simulation_name.c_str(), function_name.c_str(), function_response.toStyledString().c_str());
+                }
+            }
+        }
     }
 }
 static void mdlTerminate(SimStruct *S)

@@ -50,7 +50,7 @@ cd ./bin
 
    - **S-function parameters:**  
      ```
-     '<host>' '<server_port>' '<client_port>' '<world_name>' '<simulation_name>' '<request_meta_data>'
+     '<host>' '<server_port>' '<client_port>' '<world_name>' '<simulation_name>' '<request_meta_data>' <step_time>
      ```
 
 #### Parameter Details:
@@ -61,6 +61,7 @@ cd ./bin
 - `<world_name>`: The name of the shared simulation environment. All clients that use the same world_name will participate in the same virtual context and can exchange data with each other.
 - `<simulation_name>`: A **unique** name for this S-Function.
 - `<request_meta_data>`: A JSON string describing what data this client will **send** and **receive**.
+- `<step_time>`: Internal sample time step
 
 #### JSON Format for `request_meta_data`
 
@@ -91,7 +92,7 @@ The Test S-Function is the one demonstrated in the provided test project [./test
 Here is a sample configuration string for an additional S-Function instance:
 
 ```matlab
-'tcp://127.0.0.1' '7000' '4527' 'world' 'matlab' '{"send": {"object_1": ["position", "quaternion", "force", "torque"]}}'
+'tcp://127.0.0.1' '7000' '4527' 'world' 'matlab' '{"send": {"object_1": ["position", "quaternion", "force", "torque"]}}' 0.001
 ```
 
 This example connects to the local multiverse_server and sends state data for a single object.

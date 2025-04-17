@@ -1,3 +1,4 @@
+from typing import Dict, Any
 from multiverse_client_py import MultiverseClient, MultiverseMetaData
 
 class MultiverseConnector(MultiverseClient):
@@ -104,6 +105,14 @@ class Joint1Connector(MultiverseConnector):
             self.motor_time = 0.0
         self.reset_callback = reset_callback
 
+        def get_everything(sample_size: int):
+            return [f"Received get_everything with sample size: {sample_size}"]
+        self.api_callbacks = {"get_everything": get_everything}
+
+        def get_everything_response(sample_size: int):
+            return [f"{[0, 1, 2, 3]}"]
+        self.api_callbacks_response = {"get_everything": get_everything_response}
+
         self.run()
         self.request_meta_data["send"] = {}
         self.request_meta_data["send"]["joint_1"] = [
@@ -188,7 +197,7 @@ if __name__ == "__main__":
             KV = joint_1_connector.KV
             KI = joint_1_connector.KI
 
-            if time.time() - last_time > 0.1:
+            if time.time() - last_time > 0.5:
                 print(f"KD: {KD:.2f}, KV: {KV:.2f}, KI: {KI:.2f}")
                 last_time = time.time()
             time.sleep(0.001)
