@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from multiverse_client_py import MultiverseClient, MultiverseMetaData
 
 class MultiverseConnector(MultiverseClient):
@@ -64,6 +64,9 @@ class MultiverseInitializer(MultiverseConnector):
         self.send_and_receive_data()
         self.stop()
 
+from collections import deque
+N = 10000
+
 class Joint1Connector(MultiverseConnector):
     cmd_position: float = 0.0
     cmd_velocity: float = 0.0
@@ -77,6 +80,7 @@ class Joint1Connector(MultiverseConnector):
     sim_time: float = 0.0
     world_time: float = 0.0
     motor_time: float = 0.0
+    save_data: Dict[str, Any] = {}
 
     def __init__(self) -> None:
         multiverse_meta_data = MultiverseMetaData(
@@ -103,14 +107,33 @@ class Joint1Connector(MultiverseConnector):
             self.start_time = time.time()
             self.sim_time = 0.0
             self.motor_time = 0.0
+            for object_name, attributes in self.save_send_data.items():
+                for attribute_name in attributes.keys():
+                    attributes[attribute_name].clear()
+            for object_name, attributes in self.save_receive_data.items():
+                for attribute_name in attributes.keys():
+                    attributes[attribute_name].clear()
         self.reset_callback = reset_callback
 
-        def get_everything(sample_size: int):
-            return [f"Received get_everything with sample size: {sample_size}"]
+        def get_everything(args: List[str]):
+            return None
         self.api_callbacks = {"get_everything": get_everything}
 
-        def get_everything_response(sample_size: int):
-            return [f"{[0, 1, 2, 3]}"]
+        def get_everything_response(args: List[str]):
+            save_data_names  = ""
+            save_data_results = ""
+            sample_size = int(args[0])
+            for object_name, attributes in self.save_send_data.items():
+                for attribute_name, data in attributes.items():
+                    save_data_names += object_name + ":" + attribute_name + ","
+                    save_data_results += str(list(data)[-sample_size:])
+            for object_name, attributes in self.save_receive_data.items():
+                for attribute_name, data in attributes.items():
+                    save_data_names += object_name + ":" + attribute_name + ", "
+                    save_data_results += str(list(data)[-sample_size:])
+            save_data_name = save_data_names.strip()
+            save_data_result = save_data_results.strip()
+            return [save_data_name, save_data_result]
         self.api_callbacks_response = {"get_everything": get_everything_response}
 
         self.run()
@@ -132,9 +155,24 @@ class Joint1Connector(MultiverseConnector):
         self.send_and_receive_meta_data()
         self.start_time = time.time()
 
+        response_meta_data = self.response_meta_data
+        self.save_send_data = {}
+        for object_name, attributes in response_meta_data["send"].items():
+            if object_name not in self.save_send_data:
+                self.save_send_data[object_name] = {}
+            for attribute_name in attributes.keys():
+                self.save_send_data[object_name][attribute_name] = deque(maxlen=N)
+        
+        self.save_receive_data = {}
+        for object_name, attributes in response_meta_data["receive"].items():
+            if object_name not in self.save_receive_data:
+                self.save_receive_data[object_name] = {}
+            for attribute_name in attributes.keys():
+                self.save_receive_data[object_name][attribute_name] = deque(maxlen=N)
+
     def communicate(self):
         self.sim_time = time.time() - self.start_time
-        self.send_data = [
+        send_data = [
             self.sim_time,
             self.cmd_velocity,
             self.cmd_position,
@@ -144,11 +182,23 @@ class Joint1Connector(MultiverseConnector):
             self.torque,
             self.motor_time,
         ]
+        self.send_data = send_data
+        i = 1
+        for object_name, attributes in self.save_send_data.items():
+            for attribute_name in attributes.keys():
+                self.save_send_data[object_name][attribute_name].append(send_data[i])
+                i += 1
         self.send_and_receive_data()
-        self.world_time = self.receive_data[0]
-        self.KD = self.receive_data[1]
-        self.KV = self.receive_data[2]
-        self.KI = self.receive_data[3]
+        receive_data = self.receive_data
+        self.world_time = receive_data[0]
+        self.KD = receive_data[1]
+        self.KV = receive_data[2]
+        self.KI = receive_data[3]
+        i = 1
+        for object_name, attributes in self.save_receive_data.items():
+            for attribute_name in attributes.keys():
+                self.save_receive_data[object_name][attribute_name].append(receive_data[i])
+                i += 1
 
 import os
 import threading

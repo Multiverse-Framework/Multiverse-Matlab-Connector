@@ -3,6 +3,10 @@
 
 #include "simstruc.h" /* Defines the data structure */
 
+#include <regex>
+#include <string>
+#include <iterator>
+#include <fstream>
 #include <string>
 #include <multiverse_client_json.h>
 #include <map>
@@ -474,9 +478,10 @@ static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output 
     ssSetInputPortDirectFeedThrough(S, 0, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
 
-    if (!ssSetNumOutputPorts(S, 1))
+    if (!ssSetNumOutputPorts(S, 2))
         return;
     ssSetOutputPortWidth(S, 0, output_port_size);
+    ssSetOutputPortWidth(S, 1, 10 * 10000);
 
     ssSetNumSampleTimes(S, 1);
 
@@ -615,11 +620,11 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
         mc->set_send_data_at(i, *input_ptrs[i + 1]);
     }
 
-    real_T *output_ptrs = ssGetOutputPortRealSignal(S, 0);
-    output_ptrs[0] = mc->get_world_time();
+    real_T *output_1_ptrs = ssGetOutputPortRealSignal(S, 0);
+    output_1_ptrs[0] = mc->get_world_time();
     for (i = 0; i < mc->get_receive_data_size(); i++)
     {
-        output_ptrs[i + 1] = mc->get_receive_data_at(i);
+        output_1_ptrs[i + 1] = mc->get_receive_data_at(i);
     }
 
     const Json::Value api_callbacks_response = mc->get_api_callbacks_response();
@@ -632,7 +637,50 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
                 for (const std::string &function_name : simulation_api_callback_response.getMemberNames())
                 {
                     const Json::Value function_response = simulation_api_callback_response[function_name];
-                    mexPrintf("Simulation: %s, Function: %s, Response: %s\n", simulation_name.c_str(), function_name.c_str(), function_response.toStyledString().c_str());
+                    // mexPrintf("Simulation: %s, Function: %s, Response: %s\n", simulation_name.c_str(), function_name.c_str(), function_response.toStyledString().c_str());
+                    if (function_name == "get_everything")
+                    {
+                        const std::string input = function_response.toStyledString();
+
+                        std::ofstream file("./output.txt");  // open file for writing
+                        if (file.is_open()) {
+                            file << input;
+                            file.close();  // always close when done
+                        } else {
+                            mexPrintf("Unable to open file for writing\n");
+                        }
+
+                        // real_T *output_2_ptrs = ssGetOutputPortRealSignal(S, 1);
+                        // const int_T output_2_size = ssGetOutputPortWidth(S, 1);
+
+                        // // Match all quoted strings safely
+                        // std::regex quoted_string(R"delim("([^"]*)")delim");
+                        // std::sregex_iterator begin(input.begin(), input.end(), quoted_string);
+                        // std::sregex_iterator end;
+
+                        // int quote_index = 0;
+                        // for (auto it = begin; it != end; ++it, ++quote_index)
+                        // {
+                        //     if (quote_index == 1)
+                        //     {                                // second quoted string
+                        //         std::string data = (*it)[1]; // content inside quotes
+
+                        //         std::regex num_regex(R"(-?\d+(\.\d+)?([eE][-+]?\d+)?)");
+                        //         int idx = 0;
+                        //         for (std::sregex_iterator ni(data.begin(), data.end(), num_regex);
+                        //              ni != std::sregex_iterator(); ++ni)
+                        //         {
+                        //             if (idx >= output_2_size)
+                        //             {
+                        //                 mexPrintf("Output 2 size exceeded: %d\n", output_2_size);
+                        //                 break;
+                        //             }
+                        //             output_2_ptrs[idx++] = std::stod(ni->str());
+                        //         }
+                        //         break;
+                        //     }
+                        // }
+                    }
                 }
             }
         }
