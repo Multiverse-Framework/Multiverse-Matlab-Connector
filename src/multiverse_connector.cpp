@@ -650,36 +650,33 @@ static void mdlOutputs(SimStruct *S, int_T tid) /* Calculate the block output fo
                             mexPrintf("Unable to open file for writing\n");
                         }
 
-                        // real_T *output_2_ptrs = ssGetOutputPortRealSignal(S, 1);
-                        // const int_T output_2_size = ssGetOutputPortWidth(S, 1);
+                        real_T *output_2_ptrs = ssGetOutputPortRealSignal(S, 1);
+                        const int_T output_2_size = ssGetOutputPortWidth(S, 1);
 
-                        // // Match all quoted strings safely
-                        // std::regex quoted_string(R"delim("([^"]*)")delim");
-                        // std::sregex_iterator begin(input.begin(), input.end(), quoted_string);
-                        // std::sregex_iterator end;
+                        // Step 1: Find the last two double quotes
+                        size_t last_quote = input.rfind('"');
+                        if (last_quote == std::string::npos) return;
 
-                        // int quote_index = 0;
-                        // for (auto it = begin; it != end; ++it, ++quote_index)
-                        // {
-                        //     if (quote_index == 1)
-                        //     {                                // second quoted string
-                        //         std::string data = (*it)[1]; // content inside quotes
+                        size_t second_last_quote = input.rfind('"', last_quote - 1);
+                        if (second_last_quote == std::string::npos) return;
 
-                        //         std::regex num_regex(R"(-?\d+(\.\d+)?([eE][-+]?\d+)?)");
-                        //         int idx = 0;
-                        //         for (std::sregex_iterator ni(data.begin(), data.end(), num_regex);
-                        //              ni != std::sregex_iterator(); ++ni)
-                        //         {
-                        //             if (idx >= output_2_size)
-                        //             {
-                        //                 mexPrintf("Output 2 size exceeded: %d\n", output_2_size);
-                        //                 break;
-                        //             }
-                        //             output_2_ptrs[idx++] = std::stod(ni->str());
-                        //         }
-                        //         break;
-                        //     }
-                        // }
+                        // Step 2: Extract content between them
+                        std::string data = input.substr(second_last_quote + 1, last_quote - second_last_quote - 1);
+
+                        // Step 3: Parse all numbers inside
+                        std::regex number_regex(R"(-?\d+(\.\d+)?([eE][-+]?\d+)?)");
+
+                        int idx = 0;
+                        for (std::sregex_iterator it(data.begin(), data.end(), number_regex);
+                            it != std::sregex_iterator(); ++it)
+                        {
+                            if (idx >= output_2_size)
+                            {
+                                mexPrintf("Output 2 size exceeded: %d\n", output_2_size);
+                                break;
+                            }
+                            output_2_ptrs[idx++] = std::stod(it->str());
+                        }
                     }
                 }
             }
