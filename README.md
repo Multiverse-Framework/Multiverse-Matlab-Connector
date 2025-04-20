@@ -20,10 +20,11 @@ This repository provides everything you need to integrate [Multiverse](https://g
 - **Ubuntu:** MATLAB uses an older `libstdc++.so.6` internally which may be incompatible with newer libraries. Use:
 
 ```bash
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 matlab
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 matlab -noopengl
 ```
 
-This ensures the correct C++ standard library is loaded.
+- `LD_PRELOAD` ensures MATLAB uses the system’s C++ standard library instead of the bundled one.
+- `-noopengl` disables hardware-accelerated OpenGL, which can cause crashes or rendering issues.
 
 ---
 
@@ -31,7 +32,7 @@ This ensures the correct C++ standard library is loaded.
 
 In MATLAB, navigate to the directory containing the compiled S-Function:
 ```matlab
-cd ./bin
+cd Multiverse-Matlab-Connector/bin
 ```
 
 ---
@@ -134,10 +135,10 @@ Once configured, your Simulink block can send/receive real-time data with the Mu
 If you make changes to [multiverse_connector.cpp](./src/multiverse_connector.cpp), rebuild it using the appropriate script:
 
 - **Windows:**  
-  Run `.\bin\compile_multiverse_connector_windows.m`
+  Run `Multiverse-Matlab-Connector\bin\compile_multiverse_connector_windows.m`
 
 - **Linux/Ubuntu:**  
-  Run `./bin/compile_multiverse_connector_linux.m`
+  Run `Multiverse-Matlab-Connector/bin/compile_multiverse_connector_linux.m`
 
 > ⚠️ On Windows, you must install the **MinGW-w64 Compiler** add-on from MATLAB Add-On Explorer.
 
@@ -157,13 +158,13 @@ git clone https://github.com/Multiverse-Framework/Multiverse-ServerClient.git
 
 1. (Optional) Build the Multiverse Server via `make`
 
-- **Windows:** `cd .\multiverse_server && make.exe clean && make.exe`
-- **Ubuntu:** `cd ./multiverse_server && make clean && make`
+- **Windows:** `cd Multiverse-ServerClient\multiverse_server && make.exe clean && make.exe`
+- **Ubuntu:** `cd Multiverse-ServerClientr/multiverse_server && make clean && make`
 
 3. Start the Multiverse Server:
 
-- **Windows:** `.\bin\multiverse_server.exe`
-- **Ubuntu:** `./bin/multiverse_server`
+- **Windows:** `.\Multiverse-ServerClient\bin\multiverse_server.exe`
+- **Ubuntu:** `./Multiverse-ServerClient/bin/multiverse_server`
 
 3. Get your server’s IP address — this will be used as the `<host_ip>` by clients.
 
@@ -181,13 +182,13 @@ git clone https://github.com/Multiverse-Framework/Multiverse-ClientPy.git
 #### Windows:
 ```cmd
 set PYTHONPATH=%PYTHONPATH%;<path_to>/Multiverse-ClientPy
-python ./tests/dummy_joint_1.py --host=tcp://<host_ip>
+python Multiverse-ClientPy/tests/dummy_joint_1.py --host=tcp://<host_ip>
 ```
 
 #### Ubuntu:
 ```bash
 export PYTHONPATH=$PYTHONPATH:<path_to>/Multiverse-ClientPy
-python ./tests/dummy_joint_1.py --host=tcp://<host_ip>
+python Multiverse-ClientPy/tests/dummy_joint_1.py --host=tcp://<host_ip>
 ```
 
 > Replace `<host_ip>` with the IP address of the machine running the Multiverse Server (default is `127.0.0.1`).
