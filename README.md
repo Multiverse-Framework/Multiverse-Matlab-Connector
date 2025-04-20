@@ -182,13 +182,13 @@ git clone https://github.com/Multiverse-Framework/Multiverse-ClientPy.git
 #### Windows:
 ```cmd
 set PYTHONPATH=%PYTHONPATH%;<path_to>/Multiverse-ClientPy
-python Multiverse-ClientPy/tests/dummy_joint_1.py --host=tcp://<host_ip>
+python Multiverse-Matlab-Connector/tests/dummy_joint_1.py --host=tcp://<host_ip>
 ```
 
 #### Ubuntu:
 ```bash
 export PYTHONPATH=$PYTHONPATH:<path_to>/Multiverse-ClientPy
-python Multiverse-ClientPy/tests/dummy_joint_1.py --host=tcp://<host_ip>
+python Multiverse-Matlab-Connector/tests/dummy_joint_1.py --host=tcp://<host_ip>
 ```
 
 > Replace `<host_ip>` with the IP address of the machine running the Multiverse Server (default is `127.0.0.1`).
