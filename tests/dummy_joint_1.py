@@ -186,7 +186,7 @@ class Joint1Connector(MultiverseConnector):
         i = 1
         for object_name, attributes in self.save_send_data.items():
             for attribute_name in attributes.keys():
-                self.save_send_data[object_name][attribute_name].append(send_data[i])
+                self.save_send_data[object_name][attribute_name].append(float(send_data[i]))
                 i += 1
         self.send_and_receive_data()
         receive_data = self.receive_data
@@ -197,7 +197,7 @@ class Joint1Connector(MultiverseConnector):
         i = 1
         for object_name, attributes in self.save_receive_data.items():
             for attribute_name in attributes.keys():
-                self.save_receive_data[object_name][attribute_name].append(receive_data[i])
+                self.save_receive_data[object_name][attribute_name].append(float(receive_data[i]))
                 i += 1
 
 import os
