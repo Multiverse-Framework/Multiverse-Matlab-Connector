@@ -20,7 +20,7 @@ This repository provides everything you need to integrate [Multiverse](https://g
 
   ```bash
   cd ./Multiverse-Matlab-Connector/bin
-  LD_LIBRARY_PATH=${PWD}/bin matlab -noopengl
+  LD_LIBRARY_PATH=${PWD} matlab -noopengl
   ```
 
   - `LD_LIBRARY_PATH` ensures MATLAB uses the correct shared libraries.
