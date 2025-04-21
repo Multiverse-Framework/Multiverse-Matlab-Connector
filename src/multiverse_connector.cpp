@@ -70,7 +70,7 @@ public:
         const std::string &world_name = "world",
         const std::string &simulation_name = "matlab_connector",
         const Json::Value &param_json = Json::Value(),
-        const double in_step_time = 0.001)
+        const double in_time_step = 0.001)
     {
         meta_data["world_name"] = world_name;
         meta_data["simulation_name"] = simulation_name;
@@ -79,7 +79,7 @@ public:
         meta_data["mass_unit"] = "kg";
         meta_data["time_unit"] = "s";
         meta_data["handedness"] = "rhs";
-        step_time = in_step_time;
+        time_step = in_time_step;
 
         host = in_host;
         server_port = in_server_port;
@@ -145,9 +145,9 @@ public:
                                                 }
                                                 communicate(false);
                                                 const double time_diff = get_time_now() - time_now;
-                                                if (time_diff < step_time)
+                                                if (time_diff < time_step)
                                                 {
-                                                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((step_time - time_diff) * 1000)));
+                                                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((time_step - time_diff) * 1000)));
                                                 }
                                               } });
     }
@@ -400,7 +400,7 @@ private:
 
     double sim_time;
 
-    double step_time = 0.001;
+    double time_step = 0.001;
 };
 
 static void mdlInitializeSizes(SimStruct *S) /* Initialize the input and output ports and their size */
@@ -572,18 +572,18 @@ static void mdlStart(SimStruct *S)
     }
     const Json::Value param_json = string_to_json(param_str);
 
-    const mxArray *step_time = ssGetSFcnParam(S, 6);
-    if (!mxIsDouble(step_time) || mxGetNumberOfElements(step_time) != 1)
+    const mxArray *time_step = ssGetSFcnParam(S, 6);
+    if (!mxIsDouble(time_step) || mxGetNumberOfElements(time_step) != 1)
     {
         ssSetErrorStatus(S, "Step time must be a double.");
         return;
     }
-    if (mxGetPr(step_time)[0] <= 0)
+    if (mxGetPr(time_step)[0] <= 0)
     {
         ssSetErrorStatus(S, "Step time must be positive.");
         return;
     }
-    const double step_time_value = mxGetPr(step_time)[0];
+    const double time_step_value = mxGetPr(time_step)[0];
 
     MultiverseConnector *mc = new MultiverseConnector(
         host_str,
@@ -592,7 +592,7 @@ static void mdlStart(SimStruct *S)
         world_name_str,
         simulation_name_str,
         param_json,
-        step_time_value);
+        time_step_value);
 
     mc->start();
 

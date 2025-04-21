@@ -8,7 +8,6 @@ This repository provides everything you need to integrate [Multiverse](https://g
 
 - **MATLAB R2024b** or newer.
 - MATLAB Add-On **MinGW-w64 Compiler** (on Windows, for building the MEX S-Function).
-- On **Ubuntu**, system libraries must support `GLIBCXX_3.4.32` (e.g., GCC ≥ 11).
 
 ---
 
@@ -17,14 +16,15 @@ This repository provides everything you need to integrate [Multiverse](https://g
 ### 1. Open MATLAB
 
 - **Windows:** Launch `matlab.exe` as usual.
-- **Ubuntu:** MATLAB uses an older `libstdc++.so.6` internally which may be incompatible with newer libraries. Use:
+- **Ubuntu:** Launch MATLAB with the appropriate environment configuration:
 
-```bash
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 matlab -noopengl
-```
+  ```bash
+  cd ./Multiverse-Matlab-Connector/bin
+  LD_LIBRARY_PATH=${PWD}/bin matlab -noopengl
+  ```
 
-- `LD_PRELOAD` ensures MATLAB uses the system’s C++ standard library instead of the bundled one.
-- `-noopengl` disables hardware-accelerated OpenGL, which can cause crashes or rendering issues.
+  - `LD_LIBRARY_PATH` ensures MATLAB uses the correct shared libraries.
+  - `-noopengl` disables hardware-accelerated OpenGL, which can cause crashes or rendering issues.
 
 ---
 
@@ -51,7 +51,7 @@ cd Multiverse-Matlab-Connector/bin
 
    - **S-function parameters:**  
      ```
-     '<host>' '<server_port>' '<client_port>' '<world_name>' '<simulation_name>' '<request_meta_data>' <step_time>
+     '<host>' '<server_port>' '<client_port>' '<world_name>' '<simulation_name>' '<request_meta_data>' <time_step>
      ```
 
 #### Parameter Details:
@@ -62,7 +62,7 @@ cd Multiverse-Matlab-Connector/bin
 - `<world_name>`: The name of the shared simulation environment. All clients that use the same world_name will participate in the same virtual context and can exchange data with each other.
 - `<simulation_name>`: A **unique** name for this S-Function.
 - `<request_meta_data>`: A JSON string describing what data this client will **send** and **receive**.
-- `<step_time>`: Internal sample time step
+- `<time_step>`: Internal sample time step
 
 #### JSON Format for `request_meta_data`
 
