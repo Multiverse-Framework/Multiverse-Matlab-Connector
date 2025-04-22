@@ -16,13 +16,7 @@ This repository provides everything you need to integrate [Multiverse](https://g
 ### 1. Open MATLAB
 
 - **Windows:** Launch `matlab.exe` as usual.
-- **Ubuntu:** Launch MATLAB with `-noopengel`
-
-  ```bash
-  matlab -noopengl
-  ```
-
-  - `-noopengl` disables hardware-accelerated OpenGL, which can cause crashes or rendering issues.
+- **Ubuntu:** Run matlab -noopengl to disable hardware-accelerated OpenGL and avoid rendering issues.
 
 ---
 
