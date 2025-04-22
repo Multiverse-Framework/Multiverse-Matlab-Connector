@@ -16,14 +16,12 @@ This repository provides everything you need to integrate [Multiverse](https://g
 ### 1. Open MATLAB
 
 - **Windows:** Launch `matlab.exe` as usual.
-- **Ubuntu:** Launch MATLAB with the appropriate environment configuration:
+- **Ubuntu:** Launch MATLAB with `-noopengel`
 
   ```bash
-  cd ./Multiverse-Matlab-Connector/bin
-  LD_LIBRARY_PATH=${PWD} matlab -noopengl
+  matlab -noopengl
   ```
 
-  - `LD_LIBRARY_PATH` ensures MATLAB uses the correct shared libraries.
   - `-noopengl` disables hardware-accelerated OpenGL, which can cause crashes or rendering issues.
 
 ---
